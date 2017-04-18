@@ -48,7 +48,7 @@ static struct {
 // ----------------------------------------------------------------------------
 
 static jobject gPowerManagerServiceObj;
-static struct power_module* gPowerModule;
+struct power_module* gPowerModule;
 
 static nsecs_t gLastEventTime[USER_ACTIVITY_EVENT_LAST + 1];
 
@@ -186,15 +186,15 @@ static const JNINativeMethod gPowerManagerServiceMethods[] = {
 
 #define FIND_CLASS(var, className) \
         var = env->FindClass(className); \
-        LOG_FATAL_IF(! var, "Unable to find class " className);
+        LOG_FATAL_IF(! (var), "Unable to find class " className);
 
 #define GET_METHOD_ID(var, clazz, methodName, methodDescriptor) \
         var = env->GetMethodID(clazz, methodName, methodDescriptor); \
-        LOG_FATAL_IF(! var, "Unable to find method " methodName);
+        LOG_FATAL_IF(! (var), "Unable to find method " methodName);
 
 #define GET_FIELD_ID(var, clazz, fieldName, fieldDescriptor) \
         var = env->GetFieldID(clazz, fieldName, fieldDescriptor); \
-        LOG_FATAL_IF(! var, "Unable to find field " fieldName);
+        LOG_FATAL_IF(! (var), "Unable to find field " fieldName);
 
 int register_android_server_PowerManagerService(JNIEnv* env) {
     int res = jniRegisterNativeMethods(env, "com/android/server/power/PowerManagerService",

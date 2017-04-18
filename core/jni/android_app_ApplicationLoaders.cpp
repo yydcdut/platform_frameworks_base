@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 The Android Open Source Project
+ * Copyright 2016 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,38 +14,41 @@
  * limitations under the License.
  */
 
-#include <string>
+#define LOG_TAG "ApplicationLoaders"
 
-#include "nativeloader/native_loader.h"
+#include <nativehelper/ScopedUtfChars.h>
+#include <nativeloader/native_loader.h>
+#include <vulkan/vulkan_loader_data.h>
 
 #include "core_jni_helpers.h"
 
+static void setupVulkanLayerPath_native(JNIEnv* env, jobject clazz,
+        jobject classLoader, jstring librarySearchPath) {
+    android_namespace_t* ns = android::FindNamespaceByClassLoader(env, classLoader);
+    ScopedUtfChars layerPathChars(env, librarySearchPath);
 
-static jstring createClassloaderNamespace_native(JNIEnv* env,
-                                              jobject clazz,
-                                              jobject classLoader,
-                                              jint targetSdkVersion,
-                                              jstring librarySearchPath,
-                                              jstring libraryPermittedPath,
-                                              jboolean isShared) {
-    return android::CreateClassLoaderNamespace(env, targetSdkVersion,
-                                               classLoader, isShared == JNI_TRUE,
-                                               librarySearchPath, libraryPermittedPath);
+    vulkan::LoaderData& loader_data = vulkan::LoaderData::GetInstance();
+    if (loader_data.layer_path.empty()) {
+        loader_data.layer_path = layerPathChars.c_str();
+        loader_data.app_namespace = ns;
+    } else {
+        ALOGD("ignored Vulkan layer search path %s for namespace %p",
+                layerPathChars.c_str(), ns);
+    }
 }
 
 static const JNINativeMethod g_methods[] = {
-    { "createClassloaderNamespace",
-      "(Ljava/lang/ClassLoader;ILjava/lang/String;Ljava/lang/String;Z)Ljava/lang/String;",
-      reinterpret_cast<void*>(createClassloaderNamespace_native) },
+    { "setupVulkanLayerPath", "(Ljava/lang/ClassLoader;Ljava/lang/String;)V",
+      reinterpret_cast<void*>(setupVulkanLayerPath_native) },
 };
 
-static const char* const kApplicationLoadersPathName = "android/app/ApplicationLoaders";
+static const char* const kApplicationLoadersName = "android/app/ApplicationLoaders";
 
 namespace android
 {
 
 int register_android_app_ApplicationLoaders(JNIEnv* env) {
-    return RegisterMethodsOrDie(env, kApplicationLoadersPathName, g_methods, NELEM(g_methods));
+    return RegisterMethodsOrDie(env, kApplicationLoadersName, g_methods, NELEM(g_methods));
 }
 
 } // namespace android

@@ -28,8 +28,9 @@
 
 #include <binder/IServiceManager.h>
 #include <binder/Parcel.h>
+#include <cutils/properties.h>
 #include <media/IDrm.h>
-#include <media/IMediaPlayerService.h>
+#include <media/IMediaDrmService.h>
 #include <media/stagefright/foundation/ADebug.h>
 #include <media/stagefright/MediaErrors.h>
 
@@ -37,23 +38,23 @@ namespace android {
 
 #define FIND_CLASS(var, className) \
     var = env->FindClass(className); \
-    LOG_FATAL_IF(! var, "Unable to find class " className);
+    LOG_FATAL_IF(! (var), "Unable to find class " className);
 
 #define GET_FIELD_ID(var, clazz, fieldName, fieldDescriptor) \
     var = env->GetFieldID(clazz, fieldName, fieldDescriptor); \
-    LOG_FATAL_IF(! var, "Unable to find field " fieldName);
+    LOG_FATAL_IF(! (var), "Unable to find field " fieldName);
 
 #define GET_METHOD_ID(var, clazz, fieldName, fieldDescriptor) \
     var = env->GetMethodID(clazz, fieldName, fieldDescriptor); \
-    LOG_FATAL_IF(! var, "Unable to find method " fieldName);
+    LOG_FATAL_IF(! (var), "Unable to find method " fieldName);
 
 #define GET_STATIC_FIELD_ID(var, clazz, fieldName, fieldDescriptor) \
     var = env->GetStaticFieldID(clazz, fieldName, fieldDescriptor); \
-    LOG_FATAL_IF(! var, "Unable to find field " fieldName);
+    LOG_FATAL_IF(! (var), "Unable to find field " fieldName);
 
 #define GET_STATIC_METHOD_ID(var, clazz, fieldName, fieldDescriptor) \
     var = env->GetStaticMethodID(clazz, fieldName, fieldDescriptor); \
-    LOG_FATAL_IF(! var, "Unable to find static method " fieldName);
+    LOG_FATAL_IF(! (var), "Unable to find static method " fieldName);
 
 
 struct RequestFields {
@@ -353,18 +354,13 @@ JDrm::~JDrm() {
 sp<IDrm> JDrm::MakeDrm() {
     sp<IServiceManager> sm = defaultServiceManager();
 
-    sp<IBinder> binder =
-        sm->getService(String16("media.player"));
-
-    sp<IMediaPlayerService> service =
-        interface_cast<IMediaPlayerService>(binder);
-
+    sp<IBinder> binder = sm->getService(String16("media.drm"));
+    sp<IMediaDrmService> service = interface_cast<IMediaDrmService>(binder);
     if (service == NULL) {
         return NULL;
     }
 
     sp<IDrm> drm = service->makeDrm();
-
     if (drm == NULL || (drm->initCheck() != OK && drm->initCheck() != NO_INIT)) {
         return NULL;
     }
@@ -1048,22 +1044,6 @@ static jobject android_media_MediaDrm_provideProvisionResponseNative(
     return certificateObj;
 }
 
-static void android_media_MediaDrm_unprovisionDeviceNative(
-    JNIEnv *env, jobject thiz) {
-    sp<IDrm> drm = GetDrm(env, thiz);
-
-    if (drm == NULL) {
-        jniThrowException(env, "java/lang/IllegalStateException",
-                          "MediaDrm obj is null");
-        return;
-    }
-
-    status_t err = drm->unprovisionDevice();
-
-    throwExceptionAsNecessary(env, err, "Failed to handle provision response");
-    return;
-}
-
 static jobject android_media_MediaDrm_getSecureStops(
     JNIEnv *env, jobject thiz) {
     sp<IDrm> drm = GetDrm(env, thiz);
@@ -1495,9 +1475,6 @@ static const JNINativeMethod gMethods[] = {
 
     { "provideProvisionResponseNative", "([B)Landroid/media/MediaDrm$Certificate;",
       (void *)android_media_MediaDrm_provideProvisionResponseNative },
-
-    { "unprovisionDevice", "()V",
-      (void *)android_media_MediaDrm_unprovisionDeviceNative },
 
     { "getSecureStops", "()Ljava/util/List;",
       (void *)android_media_MediaDrm_getSecureStops },

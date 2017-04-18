@@ -18,7 +18,7 @@ LOCAL_PATH:= $(call my-dir)
 
 uiautomator.core_src_files := $(call all-java-files-under, core-src) \
 	$(call all-java-files-under, testrunner-src)
-uiautomator.core_java_libraries := android.test.runner core-junit
+uiautomator.core_java_libraries := android.test.runner junit
 
 uiautomator_internal_api_file := $(TARGET_OUT_COMMON_INTERMEDIATES)/PACKAGING/uiautomator_api.txt
 uiautomator_internal_removed_api_file := \
@@ -29,20 +29,22 @@ include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(uiautomator.core_src_files)
 LOCAL_MODULE := uiautomator.core
 LOCAL_JAVA_LIBRARIES := android.test.runner
+LOCAL_STATIC_JAVA_LIBRARIES := junit legacy-android-test
 include $(BUILD_STATIC_JAVA_LIBRARY)
 
 ###############################################
 # Generate the stub source files
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(uiautomator.core_src_files)
-LOCAL_JAVA_LIBRARIES := $(uiautomator.core_java_libraries)
+LOCAL_JAVA_LIBRARIES := $(uiautomator.core_java_libraries) legacy-android-test
 LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 LOCAL_DROIDDOC_SOURCE_PATH := $(LOCAL_PATH)/core-src \
 	$(LOCAL_PATH)/testrunner-src
 LOCAL_DROIDDOC_HTML_DIR :=
 
+LOCAL_DROIDDOC_STUB_OUT_DIR := $(TARGET_OUT_COMMON_INTERMEDIATES)/JAVA_LIBRARIES/android_uiautomator_intermediates/src
+
 LOCAL_DROIDDOC_OPTIONS:= \
-    -stubs $(TARGET_OUT_COMMON_INTERMEDIATES)/JAVA_LIBRARIES/android_uiautomator_intermediates/src \
     -stubpackages com.android.uiautomator.core:com.android.uiautomator.testrunner \
     -api $(uiautomator_internal_api_file) \
     -removedApi $(uiautomator_internal_removed_api_file)
@@ -66,7 +68,6 @@ include $(BUILD_STATIC_JAVA_LIBRARY)
 # Make sure to run droiddoc first to generate the stub source files.
 $(full_classes_compiled_jar) : $(uiautomator_stubs_stamp)
 $(built_dex_intermediate) : $(uiautomator_stubs_stamp)
-uiautomator_stubs_jar := $(full_classes_compiled_jar)
 
 ###############################################
 # API check
@@ -91,7 +92,7 @@ $(eval $(call check-api, \
     $(uiautomator_internal_removed_api_file), \
     $(checkapi_last_error_level_flags), \
     cat $(LOCAL_PATH)/apicheck_msg_last.txt, \
-    $(uiautomator_stubs_jar), \
+    uiautomator.core, \
     $(uiautomator_stubs_stamp)))
 
 checkapi_current_error_level_flags := \
@@ -110,24 +111,23 @@ $(eval $(call check-api, \
     $(uiautomator_internal_removed_api_file), \
     $(checkapi_current_error_level_flags), \
     cat $(LOCAL_PATH)/apicheck_msg_current.txt, \
-    $(uiautomator_stubs_jar), \
+    uiautomator.core, \
     $(uiautomator_stubs_stamp)))
 
 .PHONY: update-uiautomator-api
 update-uiautomator-api: PRIVATE_API_DIR := $(uiautomator_api_dir)
 update-uiautomator-api: PRIVATE_REMOVED_API_FILE := $(uiautomator_internal_removed_api_file)
-update-uiautomator-api: $(uiautomator_internal_api_file) | $(ACP)
+update-uiautomator-api: $(uiautomator_internal_api_file)
 	@echo Copying uiautomator current.txt
-	$(hide) $(ACP) $< $(PRIVATE_API_DIR)/current.txt
+	$(hide) cp $< $(PRIVATE_API_DIR)/current.txt
 	@echo Copying uiautomator removed.txt
-	$(hide) $(ACP) $(PRIVATE_REMOVED_API_FILE) $(PRIVATE_API_DIR)/removed.txt
+	$(hide) cp $(PRIVATE_REMOVED_API_FILE) $(PRIVATE_API_DIR)/removed.txt
 ###############################################
 # clean up temp vars
 uiautomator.core_src_files :=
 uiautomator.core_java_libraries :=
 uiautomator_stubs_stamp :=
 uiautomator_internal_api_file :=
-uiautomator_stubs_jar :=
 uiautomator_api_dir :=
 checkapi_last_error_level_flags :=
 checkapi_current_error_level_flags :=

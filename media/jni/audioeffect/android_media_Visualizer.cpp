@@ -31,13 +31,13 @@
 using namespace android;
 
 #define VISUALIZER_SUCCESS                      0
-#define VISUALIZER_ERROR                       -1
-#define VISUALIZER_ERROR_ALREADY_EXISTS        -2
-#define VISUALIZER_ERROR_NO_INIT               -3
-#define VISUALIZER_ERROR_BAD_VALUE             -4
-#define VISUALIZER_ERROR_INVALID_OPERATION     -5
-#define VISUALIZER_ERROR_NO_MEMORY             -6
-#define VISUALIZER_ERROR_DEAD_OBJECT           -7
+#define VISUALIZER_ERROR                       (-1)
+#define VISUALIZER_ERROR_ALREADY_EXISTS        (-2)
+#define VISUALIZER_ERROR_NO_INIT               (-3)
+#define VISUALIZER_ERROR_BAD_VALUE             (-4)
+#define VISUALIZER_ERROR_INVALID_OPERATION     (-5)
+#define VISUALIZER_ERROR_NO_MEMORY             (-6)
+#define VISUALIZER_ERROR_DEAD_OBJECT           (-7)
 
 #define NATIVE_EVENT_PCM_CAPTURE                0
 #define NATIVE_EVENT_FFT_CAPTURE                1
@@ -388,7 +388,7 @@ android_media_visualizer_native_setup(JNIEnv *env, jobject thiz, jobject weak_th
                                   0,
                                   android_media_visualizer_effect_callback,
                                   lpJniStorage,
-                                  sessionId);
+                                  (audio_session_t) sessionId);
     if (lpVisualizer == 0) {
         ALOGE("Error creating Visualizer");
         goto setup_failure;
@@ -435,11 +435,12 @@ setup_failure:
 
 // ----------------------------------------------------------------------------
 static void android_media_visualizer_native_release(JNIEnv *env,  jobject thiz) {
-    sp<Visualizer> lpVisualizer = setVisualizer(env, thiz, 0);
-    if (lpVisualizer == 0) {
-        return;
+    { //limit scope so that lpVisualizer is deleted before JNI storage data.
+        sp<Visualizer> lpVisualizer = setVisualizer(env, thiz, 0);
+        if (lpVisualizer == 0) {
+            return;
+        }
     }
-
     // delete the JNI data
     VisualizerJniStorage* lpJniStorage =
         (VisualizerJniStorage *)env->GetLongField(thiz, fields.fidJniData);

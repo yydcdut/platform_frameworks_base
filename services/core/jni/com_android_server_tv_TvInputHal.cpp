@@ -391,7 +391,7 @@ int JTvInputHal::addOrUpdateStream(int deviceId, int streamId, const sp<Surface>
                 connection.mThread->shutdown();
             }
             connection.mThread = new BufferProducerThread(mDevice, deviceId, &stream);
-            connection.mThread->run();
+            connection.mThread->run("BufferProducerThread");
         }
     }
     connection.mSurface = surface;
@@ -414,12 +414,9 @@ int JTvInputHal::removeStream(int deviceId, int streamId) {
         return NO_ERROR;
     }
     if (Surface::isValid(connection.mSurface)) {
-        connection.mSurface.clear();
-    }
-    if (connection.mSurface != NULL) {
         connection.mSurface->setSidebandStream(NULL);
-        connection.mSurface.clear();
     }
+    connection.mSurface.clear();
     if (connection.mThread != NULL) {
         connection.mThread->shutdown();
         connection.mThread.clear();
@@ -616,6 +613,9 @@ static int nativeAddOrUpdateStream(JNIEnv* env, jclass clazz,
         return BAD_VALUE;
     }
     sp<Surface> surface(android_view_Surface_getSurface(env, jsurface));
+    if (!Surface::isValid(surface)) {
+        return BAD_VALUE;
+    }
     return tvInputHal->addOrUpdateStream(deviceId, streamId, surface);
 }
 
@@ -678,11 +678,11 @@ static const JNINativeMethod gTvInputHalMethods[] = {
 
 #define FIND_CLASS(var, className) \
         var = env->FindClass(className); \
-        LOG_FATAL_IF(! var, "Unable to find class " className)
+        LOG_FATAL_IF(! (var), "Unable to find class " className)
 
 #define GET_METHOD_ID(var, clazz, methodName, fieldDescriptor) \
         var = env->GetMethodID(clazz, methodName, fieldDescriptor); \
-        LOG_FATAL_IF(! var, "Unable to find method" methodName)
+        LOG_FATAL_IF(! (var), "Unable to find method" methodName)
 
 int register_android_server_tv_TvInputHal(JNIEnv* env) {
     int res = jniRegisterNativeMethods(env, "com/android/server/tv/TvInputHal",

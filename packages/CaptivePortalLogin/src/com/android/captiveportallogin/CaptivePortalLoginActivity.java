@@ -55,13 +55,15 @@ import java.lang.reflect.Method;
 import java.util.Random;
 
 public class CaptivePortalLoginActivity extends Activity {
-    private static final String TAG = "CaptivePortalLogin";
-    private static final String DEFAULT_SERVER = "connectivitycheck.gstatic.com";
+    private static final String TAG = CaptivePortalLoginActivity.class.getSimpleName();
+    private static final boolean DBG = true;
+
     private static final int SOCKET_TIMEOUT_MS = 10000;
 
     private enum Result { DISMISSED, UNWANTED, WANTED_AS_IS };
 
-    private URL mURL;
+    private URL mUrl;
+    private String mUserAgent;
     private Network mNetwork;
     private CaptivePortal mCaptivePortal;
     private NetworkCallback mNetworkCallback;
@@ -72,19 +74,21 @@ public class CaptivePortalLoginActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        String server = Settings.Global.getString(getContentResolver(), "captive_portal_server");
-        if (server == null) server = DEFAULT_SERVER;
         mCm = ConnectivityManager.from(this);
-        try {
-            mURL = new URL("http", server, "/generate_204");
-        } catch (MalformedURLException e) {
-            // System misconfigured, bail out in a way that at least provides network access.
-            Log.e(TAG, "Invalid captive portal URL, server=" + server);
-            done(Result.WANTED_AS_IS);
-        }
         mNetwork = getIntent().getParcelableExtra(ConnectivityManager.EXTRA_NETWORK);
         mCaptivePortal = getIntent().getParcelableExtra(ConnectivityManager.EXTRA_CAPTIVE_PORTAL);
+        mUserAgent =
+                getIntent().getStringExtra(ConnectivityManager.EXTRA_CAPTIVE_PORTAL_USER_AGENT);
+        mUrl = getUrl();
+        if (mUrl == null) {
+            // getUrl() failed to parse the url provided in the intent: bail out in a way that
+            // at least provides network access.
+            done(Result.WANTED_AS_IS);
+            return;
+        }
+        if (DBG) {
+            Log.d(TAG, String.format("onCreate for %s", mUrl.toString()));
+        }
 
         // Also initializes proxy system properties.
         mCm.bindProcessToNetwork(mNetwork);
@@ -98,7 +102,7 @@ public class CaptivePortalLoginActivity extends Activity {
         // Exit app if Network disappears.
         final NetworkCapabilities networkCapabilities = mCm.getNetworkCapabilities(mNetwork);
         if (networkCapabilities == null) {
-            finish();
+            finishAndRemoveTask();
             return;
         }
         mNetworkCallback = new NetworkCallback() {
@@ -117,6 +121,7 @@ public class CaptivePortalLoginActivity extends Activity {
         myWebView.clearCache(true);
         WebSettings webSettings = myWebView.getSettings();
         webSettings.setJavaScriptEnabled(true);
+        webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
         mWebViewClient = new MyWebViewClient();
         myWebView.setWebViewClient(mWebViewClient);
         myWebView.setWebChromeClient(new MyWebChromeClient());
@@ -150,6 +155,9 @@ public class CaptivePortalLoginActivity extends Activity {
     }
 
     private void done(Result result) {
+        if (DBG) {
+            Log.d(TAG, String.format("Result %s for %s", result.name(), mUrl.toString()));
+        }
         if (mNetworkCallback != null) {
             mCm.unregisterNetworkCallback(mNetworkCallback);
             mNetworkCallback = null;
@@ -165,7 +173,7 @@ public class CaptivePortalLoginActivity extends Activity {
                 mCaptivePortal.useNetwork();
                 break;
         }
-        finish();
+        finishAndRemoveTask();
     }
 
     @Override
@@ -186,22 +194,31 @@ public class CaptivePortalLoginActivity extends Activity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-        if (id == R.id.action_use_network) {
-            done(Result.WANTED_AS_IS);
-            return true;
+        final Result result;
+        final String action;
+        final int id = item.getItemId();
+        switch (id) {
+            case R.id.action_use_network:
+                result = Result.WANTED_AS_IS;
+                action = "USE_NETWORK";
+                break;
+            case R.id.action_do_not_use_network:
+                result = Result.UNWANTED;
+                action = "DO_NOT_USE_NETWORK";
+                break;
+            default:
+                return super.onOptionsItemSelected(item);
         }
-        if (id == R.id.action_do_not_use_network) {
-            done(Result.UNWANTED);
-            return true;
+        if (DBG) {
+            Log.d(TAG, String.format("onOptionsItemSelect %s for %s", action, mUrl.toString()));
         }
-        return super.onOptionsItemSelected(item);
+        done(result);
+        return true;
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-
         if (mNetworkCallback != null) {
             mCm.unregisterNetworkCallback(mNetworkCallback);
             mNetworkCallback = null;
@@ -216,11 +233,29 @@ public class CaptivePortalLoginActivity extends Activity {
                 } catch (InterruptedException e) {
                 }
             }
-            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(mURL.toString())));
+            final String url = mUrl.toString();
+            if (DBG) {
+                Log.d(TAG, "starting activity with intent ACTION_VIEW for " + url);
+            }
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
         }
     }
 
+    private URL getUrl() {
+        String url = getIntent().getStringExtra(ConnectivityManager.EXTRA_CAPTIVE_PORTAL_URL);
+        if (url == null) {
+            url = mCm.getCaptivePortalServerUrl();
+        }
+        try {
+            return new URL(url);
+        } catch (MalformedURLException e) {
+            Log.e(TAG, "Invalid captive portal URL " + url);
+        }
+        return null;
+    }
+
     private void testForCaptivePortal() {
+        // TODO: reuse NetworkMonitor facilities for consistent captive portal detection.
         new Thread(new Runnable() {
             public void run() {
                 // Give time for captive portal to open.
@@ -231,13 +266,25 @@ public class CaptivePortalLoginActivity extends Activity {
                 HttpURLConnection urlConnection = null;
                 int httpResponseCode = 500;
                 try {
-                    urlConnection = (HttpURLConnection) mURL.openConnection();
+                    urlConnection = (HttpURLConnection) mNetwork.openConnection(mUrl);
                     urlConnection.setInstanceFollowRedirects(false);
                     urlConnection.setConnectTimeout(SOCKET_TIMEOUT_MS);
                     urlConnection.setReadTimeout(SOCKET_TIMEOUT_MS);
                     urlConnection.setUseCaches(false);
+                    if (mUserAgent != null) {
+                       urlConnection.setRequestProperty("User-Agent", mUserAgent);
+                    }
+                    // cannot read request header after connection
+                    String requestHeader = urlConnection.getRequestProperties().toString();
+
                     urlConnection.getInputStream();
                     httpResponseCode = urlConnection.getResponseCode();
+                    if (DBG) {
+                        Log.d(TAG, "probe at " + mUrl +
+                                " ret=" + httpResponseCode +
+                                " request=" + requestHeader +
+                                " headers=" + urlConnection.getHeaderFields());
+                    }
                 } catch (IOException e) {
                 } finally {
                     if (urlConnection != null) urlConnection.disconnect();
@@ -293,7 +340,7 @@ public class CaptivePortalLoginActivity extends Activity {
                 // settings.  Now prompt the WebView read the Network-specific proxy settings.
                 setWebViewProxy();
                 // Load the real page.
-                view.loadUrl(mURL.toString());
+                view.loadUrl(mUrl.toString());
                 return;
             } else if (mPagesLoaded == 2) {
                 // Prevent going back to empty first page.

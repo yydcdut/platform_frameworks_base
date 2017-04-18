@@ -49,6 +49,14 @@ public class WifiSsid implements Parcelable {
     private WifiSsid() {
     }
 
+    public static WifiSsid createFromByteArray(byte ssid[]) {
+        WifiSsid wifiSsid = new WifiSsid();
+        if (ssid != null) {
+            wifiSsid.octets.write(ssid, 0/* the start offset */, ssid.length);;
+        }
+        return wifiSsid;
+    }
+
     public static WifiSsid createFromAsciiEncoded(String asciiEncoded) {
         WifiSsid a = new WifiSsid();
         a.convertToBytes(asciiEncoded);
@@ -205,7 +213,7 @@ public class WifiSsid implements Parcelable {
         for (int i = 0; i < octets.size(); i++) {
             out += String.format(Locale.US, "%02x", ssidbytes[i]);
         }
-        return out;
+        return (octets.size() > 0) ? out : null;
     }
 
     /** Implement the Parcelable interface {@hide} */

@@ -19,6 +19,7 @@ package android.security.net.config;
 import android.os.Environment;
 import android.os.UserHandle;
 import android.util.ArraySet;
+import android.util.Log;
 import android.util.Pair;
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -29,6 +30,7 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.Collections;
 import java.util.Set;
 import libcore.io.IoUtils;
 
@@ -43,6 +45,7 @@ import javax.security.auth.x500.X500Principal;
  * @hide
  */
 abstract class DirectoryCertificateSource implements CertificateSource {
+    private static final String LOG_TAG = "DirectoryCertificateSrc";
     private final File mDir;
     private final Object mLock = new Object();
     private final CertificateFactory mCertFactory;
@@ -110,8 +113,58 @@ abstract class DirectoryCertificateSource implements CertificateSource {
         });
     }
 
+    @Override
+    public Set<X509Certificate> findAllByIssuerAndSignature(final X509Certificate cert) {
+        return findCerts(cert.getIssuerX500Principal(), new CertSelector() {
+            @Override
+            public boolean match(X509Certificate ca) {
+                try {
+                    cert.verify(ca.getPublicKey());
+                    return true;
+                } catch (Exception e) {
+                    return false;
+                }
+            }
+        });
+    }
+
+    @Override
+    public void handleTrustStorageUpdate() {
+        synchronized (mLock) {
+            mCertificates = null;
+        }
+    }
+
     private static interface CertSelector {
         boolean match(X509Certificate cert);
+    }
+
+    private Set<X509Certificate> findCerts(X500Principal subj, CertSelector selector) {
+        String hash = getHash(subj);
+        Set<X509Certificate> certs = null;
+        for (int index = 0; index >= 0; index++) {
+            String fileName = hash + "." + index;
+            if (!new File(mDir, fileName).exists()) {
+                break;
+            }
+            if (isCertMarkedAsRemoved(fileName)) {
+                continue;
+            }
+            X509Certificate cert = readCertificate(fileName);
+            if (cert == null) {
+                continue;
+            }
+            if (!subj.equals(cert.getSubjectX500Principal())) {
+                continue;
+            }
+            if (selector.match(cert)) {
+                if (certs == null) {
+                    certs = new ArraySet<X509Certificate>();
+                }
+                certs.add(cert);
+            }
+        }
+        return certs != null ? certs : Collections.<X509Certificate>emptySet();
     }
 
     private X509Certificate findCert(X500Principal subj, CertSelector selector) {
@@ -125,6 +178,9 @@ abstract class DirectoryCertificateSource implements CertificateSource {
                 continue;
             }
             X509Certificate cert = readCertificate(fileName);
+            if (cert == null) {
+                continue;
+            }
             if (!subj.equals(cert.getSubjectX500Principal())) {
                 continue;
             }
@@ -146,6 +202,7 @@ abstract class DirectoryCertificateSource implements CertificateSource {
             is = new BufferedInputStream(new FileInputStream(new File(mDir, file)));
             return (X509Certificate) mCertFactory.generateCertificate(is);
         } catch (CertificateException | IOException e) {
+            Log.e(LOG_TAG, "Failed to read certificate from " + file, e);
             return null;
         } finally {
             IoUtils.closeQuietly(is);

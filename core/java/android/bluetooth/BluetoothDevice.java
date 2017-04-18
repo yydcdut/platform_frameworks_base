@@ -59,8 +59,11 @@ import java.util.UUID;
  *
  * <div class="special reference">
  * <h3>Developer Guides</h3>
- * <p>For more information about using Bluetooth, read the
- * <a href="{@docRoot}guide/topics/wireless/bluetooth.html">Bluetooth</a> developer guide.</p>
+ * <p>
+ * For more information about using Bluetooth, read the <a href=
+ * "{@docRoot}guide/topics/connectivity/bluetooth.html">Bluetooth</a> developer
+ * guide.
+ * </p>
  * </div>
  *
  * {@see BluetoothAdapter}
@@ -589,6 +592,52 @@ public final class BluetoothDevice implements Parcelable {
      */
     public static final int TRANSPORT_LE = 2;
 
+    /**
+     * Bluetooth LE 1M PHY.
+     */
+    public static final int PHY_LE_1M = 1;
+
+    /**
+     * Bluetooth LE 2M PHY.
+     */
+    public static final int PHY_LE_2M = 2;
+
+    /**
+     * Bluetooth LE Coded PHY.
+     */
+    public static final int PHY_LE_CODED = 3;
+
+    /**
+     * Bluetooth LE 1M PHY mask.
+     */
+    public static final int PHY_LE_1M_MASK = 1;
+
+    /**
+     * Bluetooth LE 2M PHY mask.
+     */
+    public static final int PHY_LE_2M_MASK = 2;
+
+    /**
+     * Bluetooth LE Coded PHY mask.
+     */
+    public static final int PHY_LE_CODED_MASK = 4;
+
+    /**
+     * No preferred coding when transmitting on the LE Coded PHY.
+     */
+    public static final int PHY_OPTION_NO_PREFERRED = 0;
+
+    /**
+     * Prefer the S=2 coding to be used when transmitting on the LE Coded PHY.
+     */
+    public static final int PHY_OPTION_S2 = 1;
+
+    /**
+     * Prefer the S=8 coding to be used when transmitting on the LE Coded PHY.
+     */
+    public static final int PHY_OPTION_S8 = 2;
+
+
     /** @hide */
     public static final String EXTRA_MAS_INSTANCE =
         "android.bluetooth.device.extra.MAS_INSTANCE";
@@ -892,6 +941,14 @@ public final class BluetoothDevice implements Parcelable {
         return false;
     }
 
+    /** @hide */
+    public boolean isBondingInitiatedLocally() {
+        try {
+            return sService.isBondingInitiatedLocally(this);
+        } catch (RemoteException e) {Log.e(TAG, "", e);}
+        return false;
+    }
+
     /**
      * Set the Out Of Band data for a remote device to be used later
      * in the pairing mechanism. Users can obtain this data through other
@@ -1164,12 +1221,12 @@ public final class BluetoothDevice implements Parcelable {
 
     /**
      * Confirm passkey for {@link #PAIRING_VARIANT_PASSKEY_CONFIRMATION} pairing.
-     * <p>Requires {@link android.Manifest.permission#BLUETOOTH_ADMIN}.
+     * <p>Requires {@link android.Manifest.permission#BLUETOOTH_PRIVILEGED}.
      *
      * @return true confirmation has been sent out
      *         false for error
      */
-    @RequiresPermission(Manifest.permission.BLUETOOTH_ADMIN)
+    @RequiresPermission(Manifest.permission.BLUETOOTH_PRIVILEGED)
     public boolean setPairingConfirmation(boolean confirm) {
         if (sService == null) {
             Log.e(TAG, "BT not enabled. Cannot set pairing confirmation");
@@ -1401,6 +1458,27 @@ public final class BluetoothDevice implements Parcelable {
     }
 
     /**
+     * Create an L2cap {@link BluetoothSocket} ready to start an insecure
+     * outgoing connection to this remote device on given channel.
+     * <p>The remote device will be not authenticated and communication on this
+     * socket will not be encrypted.
+     * <p>Use {@link BluetoothSocket#connect} to initiate the outgoing
+     * connection.
+     * <p>Valid L2CAP PSM channels are in range 1 to 2^16.
+     * <p>Requires {@link android.Manifest.permission#BLUETOOTH}
+     *
+     * @param channel L2cap PSM/channel to connect to
+     * @return a RFCOMM BluetoothServerSocket ready for an outgoing connection
+     * @throws IOException on error, for example Bluetooth not available, or
+     *                     insufficient permissions
+     * @hide
+     */
+    public BluetoothSocket createInsecureL2capSocket(int channel) throws IOException {
+        return new BluetoothSocket(BluetoothSocket.TYPE_L2CAP, -1, false, false, this, channel,
+                null);
+    }
+
+    /**
      * Create an RFCOMM {@link BluetoothSocket} ready to start a secure
      * outgoing connection to this remote device using SDP lookup of uuid.
      * <p>This is designed to be used with {@link
@@ -1583,6 +1661,30 @@ public final class BluetoothDevice implements Parcelable {
      */
     public BluetoothGatt connectGatt(Context context, boolean autoConnect,
                                      BluetoothGattCallback callback, int transport) {
+        return (connectGatt(context, autoConnect,callback, TRANSPORT_AUTO, PHY_LE_1M_MASK));
+    }
+
+    /**
+     * Connect to GATT Server hosted by this device. Caller acts as GATT client.
+     * The callback is used to deliver results to Caller, such as connection status as well
+     * as any further GATT client operations.
+     * The method returns a BluetoothGatt instance. You can use BluetoothGatt to conduct
+     * GATT client operations.
+     * @param callback GATT callback handler that will receive asynchronous callbacks.
+     * @param autoConnect Whether to directly connect to the remote device (false)
+     *                    or to automatically connect as soon as the remote
+     *                    device becomes available (true).
+     * @param transport preferred transport for GATT connections to remote dual-mode devices
+     *             {@link BluetoothDevice#TRANSPORT_AUTO} or
+     *             {@link BluetoothDevice#TRANSPORT_BREDR} or {@link BluetoothDevice#TRANSPORT_LE}
+     * @param phy preferred PHY for connections to remote LE device. Bitwise OR of any of
+     *             {@link BluetoothDevice#PHY_LE_1M_MASK}, {@link BluetoothDevice#PHY_LE_2M_MASK},
+     *             and {@link BluetoothDevice#PHY_LE_CODED_MASK}. This option does not take effect if
+     *             {@code autoConnect} is set to true.
+     * @throws IllegalArgumentException if callback is null
+     */
+    public BluetoothGatt connectGatt(Context context, boolean autoConnect,
+                                     BluetoothGattCallback callback, int transport, int phy) {
         // TODO(Bluetooth) check whether platform support BLE
         //     Do the check here or in GattServer?
         BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
@@ -1593,7 +1695,7 @@ public final class BluetoothDevice implements Parcelable {
                 // BLE is not supported
                 return null;
             }
-            BluetoothGatt gatt = new BluetoothGatt(context, iGatt, this, transport);
+            BluetoothGatt gatt = new BluetoothGatt(iGatt, this, transport, phy);
             gatt.connect(autoConnect, callback);
             return gatt;
         } catch (RemoteException e) {Log.e(TAG, "", e);}

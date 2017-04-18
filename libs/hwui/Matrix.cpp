@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-#define LOG_TAG "OpenGLRenderer"
-
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -152,10 +150,6 @@ bool Matrix4::isPerspective() const {
 void Matrix4::load(const float* v) {
     memcpy(data, v, sizeof(data));
     mType = kTypeUnknown;
-}
-
-void Matrix4::load(const Matrix4& v) {
-    *this = v;
 }
 
 void Matrix4::load(const SkMatrix& v) {
@@ -425,7 +419,7 @@ void Matrix4::mapPoint3d(Vector3& vec) const {
     vec.z = orig.x * data[2] + orig.y * data[6] + orig.z * data[kScaleZ] + data[kTranslateZ];
 }
 
-#define MUL_ADD_STORE(a, b, c) a = (a) * (b) + (c)
+#define MUL_ADD_STORE(a, b, c) ((a) = (a) * (b) + (c))
 
 void Matrix4::mapPoint(float& x, float& y) const {
     if (isSimple()) {
@@ -443,6 +437,14 @@ void Matrix4::mapPoint(float& x, float& y) const {
     y = dy * dz;
 }
 
+/**
+ * Set the contents of the rect to be the bounding rect around each of the corners, mapped by the
+ * matrix.
+ *
+ * NOTE: an empty rect to an arbitrary matrix isn't guaranteed to have an empty output, since that's
+ * important for conservative bounds estimation (e.g. rotate45Matrix.mapRect of Rect(0, 10) should
+ * result in non-empty.
+ */
 void Matrix4::mapRect(Rect& r) const {
     if (isIdentity()) return;
 

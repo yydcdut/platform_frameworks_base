@@ -752,20 +752,12 @@ public class RenderScript {
         rsnScriptForEach(mContext, id, slot, ains, aout, params, limits);
     }
 
-    native void rsnScriptReduce(long con, long id, int slot, long ain,
+    native void rsnScriptReduce(long con, long id, int slot, long[] ains,
                                 long aout, int[] limits);
-    synchronized void nScriptReduce(long id, int slot, long ain, long aout,
+    synchronized void nScriptReduce(long id, int slot, long ains[], long aout,
                                     int[] limits) {
         validate();
-        rsnScriptReduce(mContext, id, slot, ain, aout, limits);
-    }
-
-    native void rsnScriptReduceNew(long con, long id, int slot, long[] ains,
-                                   long aout, int[] limits);
-    synchronized void nScriptReduceNew(long id, int slot, long ains[], long aout,
-                                       int[] limits) {
-        validate();
-        rsnScriptReduceNew(mContext, id, slot, ains, aout, limits);
+        rsnScriptReduce(mContext, id, slot, ains, aout, limits);
     }
 
     native void rsnScriptInvokeV(long con, long id, int slot, byte[] params);
@@ -1031,104 +1023,103 @@ public class RenderScript {
 
 
 
-    long     mDev;
     long     mContext;
     private boolean mDestroyed = false;
 
     @SuppressWarnings({"FieldCanBeLocal"})
     MessageThread mMessageThread;
 
-    Element mElement_U8;
-    Element mElement_I8;
-    Element mElement_U16;
-    Element mElement_I16;
-    Element mElement_U32;
-    Element mElement_I32;
-    Element mElement_U64;
-    Element mElement_I64;
-    Element mElement_F16;
-    Element mElement_F32;
-    Element mElement_F64;
-    Element mElement_BOOLEAN;
+    volatile Element mElement_U8;
+    volatile Element mElement_I8;
+    volatile Element mElement_U16;
+    volatile Element mElement_I16;
+    volatile Element mElement_U32;
+    volatile Element mElement_I32;
+    volatile Element mElement_U64;
+    volatile Element mElement_I64;
+    volatile Element mElement_F16;
+    volatile Element mElement_F32;
+    volatile Element mElement_F64;
+    volatile Element mElement_BOOLEAN;
 
-    Element mElement_ELEMENT;
-    Element mElement_TYPE;
-    Element mElement_ALLOCATION;
-    Element mElement_SAMPLER;
-    Element mElement_SCRIPT;
-    Element mElement_MESH;
-    Element mElement_PROGRAM_FRAGMENT;
-    Element mElement_PROGRAM_VERTEX;
-    Element mElement_PROGRAM_RASTER;
-    Element mElement_PROGRAM_STORE;
-    Element mElement_FONT;
+    volatile Element mElement_ELEMENT;
+    volatile Element mElement_TYPE;
+    volatile Element mElement_ALLOCATION;
+    volatile Element mElement_SAMPLER;
+    volatile Element mElement_SCRIPT;
+    volatile Element mElement_MESH;
+    volatile Element mElement_PROGRAM_FRAGMENT;
+    volatile Element mElement_PROGRAM_VERTEX;
+    volatile Element mElement_PROGRAM_RASTER;
+    volatile Element mElement_PROGRAM_STORE;
+    volatile Element mElement_FONT;
 
-    Element mElement_A_8;
-    Element mElement_RGB_565;
-    Element mElement_RGB_888;
-    Element mElement_RGBA_5551;
-    Element mElement_RGBA_4444;
-    Element mElement_RGBA_8888;
+    volatile Element mElement_A_8;
+    volatile Element mElement_RGB_565;
+    volatile Element mElement_RGB_888;
+    volatile Element mElement_RGBA_5551;
+    volatile Element mElement_RGBA_4444;
+    volatile Element mElement_RGBA_8888;
 
-    Element mElement_HALF_2;
-    Element mElement_HALF_3;
-    Element mElement_HALF_4;
+    volatile Element mElement_HALF_2;
+    volatile Element mElement_HALF_3;
+    volatile Element mElement_HALF_4;
 
-    Element mElement_FLOAT_2;
-    Element mElement_FLOAT_3;
-    Element mElement_FLOAT_4;
+    volatile Element mElement_FLOAT_2;
+    volatile Element mElement_FLOAT_3;
+    volatile Element mElement_FLOAT_4;
 
-    Element mElement_DOUBLE_2;
-    Element mElement_DOUBLE_3;
-    Element mElement_DOUBLE_4;
+    volatile Element mElement_DOUBLE_2;
+    volatile Element mElement_DOUBLE_3;
+    volatile Element mElement_DOUBLE_4;
 
-    Element mElement_UCHAR_2;
-    Element mElement_UCHAR_3;
-    Element mElement_UCHAR_4;
+    volatile Element mElement_UCHAR_2;
+    volatile Element mElement_UCHAR_3;
+    volatile Element mElement_UCHAR_4;
 
-    Element mElement_CHAR_2;
-    Element mElement_CHAR_3;
-    Element mElement_CHAR_4;
+    volatile Element mElement_CHAR_2;
+    volatile Element mElement_CHAR_3;
+    volatile Element mElement_CHAR_4;
 
-    Element mElement_USHORT_2;
-    Element mElement_USHORT_3;
-    Element mElement_USHORT_4;
+    volatile Element mElement_USHORT_2;
+    volatile Element mElement_USHORT_3;
+    volatile Element mElement_USHORT_4;
 
-    Element mElement_SHORT_2;
-    Element mElement_SHORT_3;
-    Element mElement_SHORT_4;
+    volatile Element mElement_SHORT_2;
+    volatile Element mElement_SHORT_3;
+    volatile Element mElement_SHORT_4;
 
-    Element mElement_UINT_2;
-    Element mElement_UINT_3;
-    Element mElement_UINT_4;
+    volatile Element mElement_UINT_2;
+    volatile Element mElement_UINT_3;
+    volatile Element mElement_UINT_4;
 
-    Element mElement_INT_2;
-    Element mElement_INT_3;
-    Element mElement_INT_4;
+    volatile Element mElement_INT_2;
+    volatile Element mElement_INT_3;
+    volatile Element mElement_INT_4;
 
-    Element mElement_ULONG_2;
-    Element mElement_ULONG_3;
-    Element mElement_ULONG_4;
+    volatile Element mElement_ULONG_2;
+    volatile Element mElement_ULONG_3;
+    volatile Element mElement_ULONG_4;
 
-    Element mElement_LONG_2;
-    Element mElement_LONG_3;
-    Element mElement_LONG_4;
+    volatile Element mElement_LONG_2;
+    volatile Element mElement_LONG_3;
+    volatile Element mElement_LONG_4;
 
-    Element mElement_YUV;
+    volatile Element mElement_YUV;
 
-    Element mElement_MATRIX_4X4;
-    Element mElement_MATRIX_3X3;
-    Element mElement_MATRIX_2X2;
+    volatile Element mElement_MATRIX_4X4;
+    volatile Element mElement_MATRIX_3X3;
+    volatile Element mElement_MATRIX_2X2;
 
-    Sampler mSampler_CLAMP_NEAREST;
-    Sampler mSampler_CLAMP_LINEAR;
-    Sampler mSampler_CLAMP_LINEAR_MIP_LINEAR;
-    Sampler mSampler_WRAP_NEAREST;
-    Sampler mSampler_WRAP_LINEAR;
-    Sampler mSampler_WRAP_LINEAR_MIP_LINEAR;
-    Sampler mSampler_MIRRORED_REPEAT_NEAREST;
-    Sampler mSampler_MIRRORED_REPEAT_LINEAR;
-    Sampler mSampler_MIRRORED_REPEAT_LINEAR_MIP_LINEAR;
+    volatile Sampler mSampler_CLAMP_NEAREST;
+    volatile Sampler mSampler_CLAMP_LINEAR;
+    volatile Sampler mSampler_CLAMP_LINEAR_MIP_LINEAR;
+    volatile Sampler mSampler_WRAP_NEAREST;
+    volatile Sampler mSampler_WRAP_LINEAR;
+    volatile Sampler mSampler_WRAP_LINEAR_MIP_LINEAR;
+    volatile Sampler mSampler_MIRRORED_REPEAT_NEAREST;
+    volatile Sampler mSampler_MIRRORED_REPEAT_LINEAR;
+    volatile Sampler mSampler_MIRRORED_REPEAT_LINEAR_MIP_LINEAR;
 
     ProgramStore mProgramStore_BLEND_NONE_DEPTH_TEST;
     ProgramStore mProgramStore_BLEND_NONE_DEPTH_NO_DEPTH;
@@ -1387,6 +1378,27 @@ public class RenderScript {
     }
 
     /**
+     * Name of the file that holds the object cache.
+     */
+    private static String mCachePath;
+
+    /**
+     * Gets the path to the code cache.
+     */
+    static synchronized String getCachePath() {
+        if (mCachePath == null) {
+            final String CACHE_PATH = "com.android.renderscript.cache";
+            if (RenderScriptCacheDir.mCacheDir == null) {
+                throw new RSRuntimeException("RenderScript code cache directory uninitialized.");
+            }
+            File f = new File(RenderScriptCacheDir.mCacheDir, CACHE_PATH);
+            mCachePath = f.getAbsolutePath();
+            f.mkdirs();
+        }
+        return mCachePath;
+    }
+
+    /**
      * Create a RenderScript context.
      *
      * @param ctx The context.
@@ -1405,8 +1417,8 @@ public class RenderScript {
 
         RenderScript rs = new RenderScript(ctx);
 
-        rs.mDev = rs.nDeviceCreate();
-        rs.mContext = rs.nContextCreate(rs.mDev, flags, sdkVersion, ct.mID);
+        long device = rs.nDeviceCreate();
+        rs.mContext = rs.nContextCreate(device, flags, sdkVersion, ct.mID);
         rs.mContextType = ct;
         rs.mContextFlags = flags;
         rs.mContextSdkVersion = sdkVersion;
@@ -1415,11 +1427,7 @@ public class RenderScript {
         }
 
         // set up cache directory for entire context
-        final String CACHE_PATH = "com.android.renderscript.cache";
-        File f = new File(RenderScriptCacheDir.mCacheDir, CACHE_PATH);
-        String mCachePath = f.getAbsolutePath();
-        f.mkdirs();
-        rs.nContextSetCacheDir(mCachePath);
+        rs.nContextSetCacheDir(RenderScript.getCachePath());
 
         rs.mMessageThread = new MessageThread(rs);
         rs.mMessageThread.start();
@@ -1600,6 +1608,9 @@ public class RenderScript {
 
             nContextDeinitToClient(mContext);
             mMessageThread.mRun = false;
+            // Interrupt mMessageThread so it gets to see immediately that mRun is false
+            // and exit rightaway.
+            mMessageThread.interrupt();
 
             // Wait for mMessageThread to join.  Try in a loop, in case this thread gets interrupted
             // during the wait.  If interrupted, set the "interrupted" status of the current thread.
@@ -1618,9 +1629,6 @@ public class RenderScript {
             }
 
             nContextDestroy();
-
-            nDeviceDestroy(mDev);
-            mDev = 0;
         }
     }
 

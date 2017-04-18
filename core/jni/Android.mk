@@ -7,6 +7,7 @@ LOCAL_CFLAGS += -U__APPLE__
 LOCAL_CFLAGS += -Wno-unused-parameter
 LOCAL_CFLAGS += -Wno-non-virtual-dtor
 LOCAL_CFLAGS += -Wno-maybe-uninitialized -Wno-parentheses
+LOCAL_CFLAGS += -DHWUI_NEW_OPS
 LOCAL_CPPFLAGS += -Wno-conversion-null
 
 ifeq ($(TARGET_ARCH), arm)
@@ -19,10 +20,6 @@ ifneq ($(ENABLE_CPUSETS),)
     LOCAL_CFLAGS += -DENABLE_CPUSETS
 endif
 
-ifneq ($(ENABLE_SCHED_BOOST),)
-    LOCAL_CFLAGS += -DENABLE_SCHED_BOOST
-endif
-
 LOCAL_CFLAGS += -DGL_GLEXT_PROTOTYPES -DEGL_EGLEXT_PROTOTYPES
 
 LOCAL_CFLAGS += -DU_USING_ICU_NAMESPACE=0
@@ -32,8 +29,10 @@ LOCAL_SRC_FILES:= \
     com_android_internal_content_NativeLibraryHelper.cpp \
     com_google_android_gles_jni_EGLImpl.cpp \
     com_google_android_gles_jni_GLImpl.cpp.arm \
+    android_app_Activity.cpp \
     android_app_ApplicationLoaders.cpp \
     android_app_NativeActivity.cpp \
+    android_app_admin_SecurityLog.cpp \
     android_opengl_EGL14.cpp \
     android_opengl_EGLExt.cpp \
     android_opengl_GLES10.cpp \
@@ -44,12 +43,14 @@ LOCAL_SRC_FILES:= \
     android_opengl_GLES30.cpp \
     android_opengl_GLES31.cpp \
     android_opengl_GLES31Ext.cpp \
+    android_opengl_GLES32.cpp \
     android_database_CursorWindow.cpp \
     android_database_SQLiteCommon.cpp \
     android_database_SQLiteConnection.cpp \
     android_database_SQLiteGlobal.cpp \
     android_database_SQLiteDebug.cpp \
-    android_emoji_EmojiFactory.cpp \
+    android_graphics_drawable_AnimatedVectorDrawable.cpp \
+    android_graphics_drawable_VectorDrawable.cpp \
     android_view_DisplayEventReceiver.cpp \
     android_view_DisplayListCanvas.cpp \
     android_view_GraphicBuffer.cpp \
@@ -75,14 +76,21 @@ LOCAL_SRC_FILES:= \
     android_text_AndroidBidi.cpp \
     android_text_StaticLayout.cpp \
     android_os_Debug.cpp \
+    android_os_GraphicsEnvironment.cpp \
+    android_os_HwBinder.cpp \
+    android_os_HwBlob.cpp \
+    android_os_HwParcel.cpp \
+    android_os_HwRemoteBinder.cpp \
     android_os_MemoryFile.cpp \
     android_os_MessageQueue.cpp \
     android_os_Parcel.cpp \
     android_os_SELinux.cpp \
+    android_os_seccomp.cpp \
     android_os_SystemClock.cpp \
     android_os_SystemProperties.cpp \
     android_os_Trace.cpp \
     android_os_UEventObserver.cpp \
+    android_os_VintfObject.cpp \
     android_net_LocalSocketImpl.cpp \
     android_net_NetUtils.cpp \
     android_net_TrafficStats.cpp \
@@ -90,15 +98,15 @@ LOCAL_SRC_FILES:= \
     android_util_AssetManager.cpp \
     android_util_Binder.cpp \
     android_util_EventLog.cpp \
+    android_util_MemoryIntArray.cpp \
     android_util_Log.cpp \
+    android_util_PathParser.cpp \
     android_util_Process.cpp \
     android_util_StringBlock.cpp \
     android_util_XmlBlock.cpp \
     android_util_jar_StrictJarFile.cpp \
     android_graphics_Canvas.cpp \
     android_graphics_Picture.cpp \
-    android/graphics/AutoDecodeCancel.cpp \
-    android/graphics/AvoidXfermode.cpp \
     android/graphics/Bitmap.cpp \
     android/graphics/BitmapFactory.cpp \
     android/graphics/Camera.cpp \
@@ -112,14 +120,10 @@ LOCAL_SRC_FILES:= \
     android/graphics/Interpolator.cpp \
     android/graphics/MaskFilter.cpp \
     android/graphics/Matrix.cpp \
-    android/graphics/MinikinSkia.cpp \
-    android/graphics/MinikinUtils.cpp \
     android/graphics/Movie.cpp \
     android/graphics/NinePatch.cpp \
-    android/graphics/NinePatchImpl.cpp \
     android/graphics/NinePatchPeeker.cpp \
     android/graphics/Paint.cpp \
-    android/graphics/PaintImpl.cpp \
     android/graphics/Path.cpp \
     android/graphics/PathMeasure.cpp \
     android/graphics/PathEffect.cpp \
@@ -131,7 +135,6 @@ LOCAL_SRC_FILES:= \
     android/graphics/Shader.cpp \
     android/graphics/SurfaceTexture.cpp \
     android/graphics/Typeface.cpp \
-    android/graphics/TypefaceImpl.cpp \
     android/graphics/Utils.cpp \
     android/graphics/Xfermode.cpp \
     android/graphics/YuvToJpegEncoder.cpp \
@@ -157,6 +160,7 @@ LOCAL_SRC_FILES:= \
     android_hardware_UsbDevice.cpp \
     android_hardware_UsbDeviceConnection.cpp \
     android_hardware_UsbRequest.cpp \
+    android_hardware_location_ContextHubService.cpp \
     android_hardware_location_ActivityRecognitionHardware.cpp \
     android_util_FileObserver.cpp \
     android/opengl/poly_clip.cpp.arm \
@@ -173,26 +177,33 @@ LOCAL_SRC_FILES:= \
     android_content_res_Configuration.cpp \
     android_animation_PropertyValuesHolder.cpp \
     com_android_internal_net_NetworkStatsFactory.cpp \
+    com_android_internal_os_PathClassLoaderFactory.cpp \
     com_android_internal_os_Zygote.cpp \
     com_android_internal_util_VirtualRefBasePtr.cpp \
-    com_android_internal_view_animation_NativeInterpolatorFactoryHelper.cpp
+    com_android_internal_view_animation_NativeInterpolatorFactoryHelper.cpp \
+    hwbinder/EphemeralStorage.cpp \
+    fd_utils.cpp \
 
 LOCAL_C_INCLUDES += \
+    $(LOCAL_PATH)/include \
     $(JNI_H_INCLUDE) \
     $(LOCAL_PATH)/android/graphics \
     $(LOCAL_PATH)/../../libs/hwui \
     $(LOCAL_PATH)/../../../native/opengl/libs \
+    $(LOCAL_PATH)/../../../native/vulkan/include \
     $(call include-path-for, bluedroid) \
     $(call include-path-for, libhardware)/hardware \
     $(call include-path-for, libhardware_legacy)/hardware_legacy \
-    $(TOP)/frameworks/av/include \
     $(TOP)/frameworks/base/media/jni \
+    $(TOP)/system/core/base/include \
+    $(TOP)/system/core/include \
     $(TOP)/system/media/camera/include \
     $(TOP)/system/netd/include \
     external/pdfium/core/include/fpdfapi \
-    external/pdfium/core/include/fpdfdoc \
     external/pdfium/fpdfsdk/include \
     external/pdfium/public \
+    external/pdfium \
+    external/skia/include/private \
     external/skia/src/core \
     external/skia/src/effects \
     external/skia/src/images \
@@ -200,22 +211,27 @@ LOCAL_C_INCLUDES += \
     external/sqlite/android \
     external/expat/lib \
     external/tremor/Tremor \
-    external/jpeg \
     external/harfbuzz_ng/src \
-    frameworks/opt/emoji \
     libcore/include \
     $(call include-path-for, audio-utils) \
     frameworks/minikin/include \
     external/freetype/include
 # TODO: clean up Minikin so it doesn't need the freetype include
 
+LOCAL_STATIC_LIBRARIES := \
+    libseccomp_policy \
+    libselinux \
+    libcrypto \
+
 LOCAL_SHARED_LIBRARIES := \
     libmemtrack \
     libandroidfw \
+    libbase \
     libexpat \
     libnativehelper \
     liblog \
     libcutils \
+    libdebuggerd_client \
     libutils \
     libbinder \
     libnetutils \
@@ -230,6 +246,7 @@ LOCAL_SHARED_LIBRARIES := \
     libEGL \
     libGLESv1_CM \
     libGLESv2 \
+    libvulkan \
     libETC1 \
     libhardware \
     libhardware_legacy \
@@ -240,6 +257,7 @@ LOCAL_SHARED_LIBRARIES := \
     libicuuc \
     libicui18n \
     libmedia \
+    libaudioclient \
     libjpeg \
     libusbhost \
     libharfbuzz_ng \
@@ -256,6 +274,10 @@ LOCAL_SHARED_LIBRARIES := \
     libradio_metadata \
     libnativeloader \
     libmemunreachable \
+    libhidlbase \
+    libhidltransport \
+    libhwbinder \
+    libvintf \
 
 LOCAL_SHARED_LIBRARIES += \
     libhwui \
@@ -265,8 +287,10 @@ LOCAL_SHARED_LIBRARIES += \
 # <bionic_tls.h> in com_google_android_gles_jni_GLImpl.cpp
 LOCAL_C_INCLUDES += bionic/libc/private
 
+LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)/include
+
 # AndroidRuntime.h depends on nativehelper/jni.h
-LOCAL_EXPORT_C_INCLUDE_DIRS := libnativehelper/include
+LOCAL_EXPORT_C_INCLUDE_DIRS += libnativehelper/include
 
 LOCAL_MODULE:= libandroid_runtime
 
@@ -278,10 +302,6 @@ LOCAL_CFLAGS += -Wall -Werror -Wno-error=deprecated-declarations -Wunused -Wunre
 # -Wno-c++11-extensions: Clang warns about Skia using the C++11 override keyword, but this project
 #                        is not being compiled with that level. Remove once this has changed.
 LOCAL_CLANG_CFLAGS += -Wno-c++11-extensions
-
-# b/22414716: thread_local (android/graphics/Paint.cpp) and Clang don't like each other at the
-#             moment.
-LOCAL_CLANG := false
 
 include $(BUILD_SHARED_LIBRARY)
 

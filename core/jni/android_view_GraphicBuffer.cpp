@@ -49,7 +49,7 @@ namespace android {
 // Debug
 static const bool kDebugGraphicBuffer = false;
 
-#define LOCK_CANVAS_USAGE GraphicBuffer::USAGE_SW_READ_OFTEN | GraphicBuffer::USAGE_SW_WRITE_OFTEN
+#define LOCK_CANVAS_USAGE (GraphicBuffer::USAGE_SW_READ_OFTEN | GraphicBuffer::USAGE_SW_WRITE_OFTEN)
 
 // ----------------------------------------------------------------------------
 // JNI Helpers
@@ -88,7 +88,7 @@ static struct {
 
 class GraphicBufferWrapper {
 public:
-    GraphicBufferWrapper(const sp<GraphicBuffer>& buffer): buffer(buffer) {
+    explicit GraphicBufferWrapper(const sp<GraphicBuffer>& buffer): buffer(buffer) {
     }
 
     sp<GraphicBuffer> buffer;
@@ -158,7 +158,7 @@ static jboolean android_view_GraphicBuffer_lockCanvas(JNIEnv* env, jobject,
 
     sp<GraphicBuffer> buffer(wrapper->buffer);
 
-    Rect rect;
+    Rect rect(Rect::EMPTY_RECT);
     if (dirtyRect) {
         rect.left = GET_INT(dirtyRect, gRectClassInfo.left);
         rect.top = GET_INT(dirtyRect, gRectClassInfo.top);

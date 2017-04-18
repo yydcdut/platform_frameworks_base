@@ -38,11 +38,7 @@ LOCAL_SRC_FILES := contrast.cpp \
                 sobeloperator.cpp \
                 stats_scorer.cpp
 
-LOCAL_STATIC_LIBRARIES += \
-    libcutils
-
-LOCAL_C_INCLUDES += \
-    system/core/include \
+LOCAL_CFLAGS += -Wall -Wextra -Werror -Wno-unused-parameter
 
 LOCAL_NDK_STL_VARIANT := stlport_static
 

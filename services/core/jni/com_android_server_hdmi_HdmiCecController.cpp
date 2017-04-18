@@ -84,7 +84,7 @@ private:
 // it to service thread.
 class CecEventWrapper : public LightRefBase<CecEventWrapper> {
 public:
-    CecEventWrapper(const hdmi_event_t& event) {
+    explicit CecEventWrapper(const hdmi_event_t& event) {
         // Copy message.
         switch (event.type) {
         case HDMI_EVENT_CEC_MESSAGE:
@@ -284,7 +284,7 @@ void HdmiCecController::onReceived(const hdmi_event_t* event, void* arg) {
 //------------------------------------------------------------------------------
 #define GET_METHOD_ID(var, clazz, methodName, methodDescriptor) \
         var = env->GetMethodID(clazz, methodName, methodDescriptor); \
-        LOG_FATAL_IF(! var, "Unable to find method " methodName);
+        LOG_FATAL_IF(! (var), "Unable to find method " methodName);
 
 static jlong nativeInit(JNIEnv* env, jclass clazz, jobject callbacksObj,
         jobject messageQueueObj) {
@@ -330,7 +330,7 @@ static jint nativeSendCecCommand(JNIEnv* env, jclass clazz, jlong controllerPtr,
     jsize len = env->GetArrayLength(body);
     message.length = MIN(len, CEC_MESSAGE_BODY_MAX_LENGTH);
     ScopedByteArrayRO bodyPtr(env, body);
-    std::memcpy(message.body, bodyPtr.get(), len);
+    std::memcpy(message.body, bodyPtr.get(), message.length);
 
     HdmiCecController* controller =
             reinterpret_cast<HdmiCecController*>(controllerPtr);
